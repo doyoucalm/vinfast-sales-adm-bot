@@ -40,10 +40,10 @@ vinfast-bot/
 - Snapshot data: 79 stok ready, 107 ompang entries, 165 SPK rows
 - Identifikasi 8 issue data quality kritis
 
-### ⏳ Status Blocker (per sore 12 Mei 2026)
-1. ✅ ~~Nomor WA~~ — `085101438585` = nomor admin. **Action:** beli SIM card khusus bot
-2. ⏳ **GCP setup** — akses Google account ada, tapi project `vinfast-sales-bot` belum di-create
-3. ✅ ~~API key LLM~~ — OpenRouter key `sk-or-v1-...` sudah di `.env`
+### 🟢 Status Blocker (per sore 12 Mei 2026 — semua clear)
+1. ✅ **Nomor WA** — `085101438585` bisa dipakai untuk bot, tinggal scan QR
+2. ⏳ **GCP setup** — bisa di-handle parallel di Phase 1, tidak block Phase 0
+3. ✅ **OpenRouter API key** — sudah di `.env`
 
 ### 🔜 Next Action
 Setelah 3 blocker di atas resolved, langsung mulai Phase 0 dari `docs/TODO.md`.

@@ -4,11 +4,11 @@
 
 ---
 
-## 🔴 BLOCKERS (status per 12 Mei 2026 sore)
+## 🟢 BLOCKERS (status per 12 Mei 2026 sore — SEMUA RESOLVED)
 
-- [x] ~~Nomor WA Bot~~ — **CONFIRMED**: `085101438585` adalah **nomor admin**, BUKAN bot. Perlu SIM card baru/dedicated untuk nomor bot Evolution. **TODO baru:** beli SIM card dan aktifkan WA Business untuk bot.
-- [ ] **Akses Google account `automobilvinfast@gmail.com`:** akses sudah ada, tapi **GCP project belum di-setup**. Pending: bikin project `vinfast-sales-bot`, enable Sheets/Drive/DocumentAI API, create service account, download JSON key.
-- [x] ~~DeepSeek API Key~~ — **RESOLVED via OpenRouter**: key `sk-or-v1-797e...` sudah disimpan di `.env`. Pakai `https://openrouter.ai/api/v1` + model `deepseek/deepseek-chat`. (Bukan DeepSeek direct, tapi OpenRouter routing ke DeepSeek — same model, ~10% markup, satu key untuk multi-model)
+- [x] **Nomor WA Bot** — `085101438585` **bisa dipakai untuk bot** (clarified Lucky). Tinggal scan QR di Evolution API instance baru.
+- [x] **LLM API Key** — OpenRouter key `sk-or-v1-797e...` sudah disimpan di `.env`. Pakai `openrouter.ai/api/v1` + model `deepseek/deepseek-chat` (NLU) & `google/gemini-flash-1.5` (vision).
+- [⏳] **GCP setup** — Google account access sudah ada, project `vinfast-sales-bot` belum di-create. **Bisa di-handle parallel saat Phase 1 development**, tidak block Phase 0.
 
 ---
 
