@@ -1,0 +1,39 @@
+# Credentials & secrets
+.env
+.env.local
+.env.*.local
+credentials/*.json
+credentials/*.key
+!credentials/.gitignore
+
+# Sample data (large, regenerable)
+data-samples/*.xlsx
+data-samples/*.xlsm
+!data-samples/.gitkeep
+
+# Node
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Temp
+tmp/
+.cache/
+
+# Python (untuk script analysis)
+__pycache__/
+*.pyc
+venv/
+.venv/
