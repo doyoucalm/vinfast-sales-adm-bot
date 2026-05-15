@@ -5,6 +5,7 @@ import { isManualCommand, handleManual } from "./manual-mode.js";
 import { isStartCommand, handleStart } from "./start.js";
 import { isSpkCommand, isBatalCommand, handleSpkCommand, handleSpkBatal, handleSpkFlow } from "./spk.js";
 import { isLengkapiCommand, handleLengkapiCommand, handleLengkapiBatal, handleLengkapiFlow } from "./lengkapi.js";
+import { isSetoranCommand, isTfCommand, handleSetoranCommand, handleTfCommand, handleSetoranBatal, handleSetoranFlow } from "./setoran.js";
 import { handleIncomingMedia, handlePendingMediaChoice } from "./media-ocr.js";
 import { getConvState } from "../services/conv-state.js";
 import { isBotOff } from "../services/session-mode.js";
@@ -62,6 +63,8 @@ export async function route(ctx: AuthContext): Promise<void> {
       if (spkOk) { handlerName = "handleSpkBatal"; status = "success"; return; }
       const lengkapiOk = await handleLengkapiBatal(ctx);
       if (lengkapiOk) { handlerName = "handleLengkapiBatal"; status = "success"; return; }
+      const setoranOk = await handleSetoranBatal(ctx);
+      if (setoranOk) { handlerName = "handleSetoranBatal"; status = "success"; return; }
       handlerName = "batal_noop";
       await evolution.sendText(ctx.msg.fromNumber, "Tidak ada proses yang sedang berjalan.", { delayMs: 300 });
       status = "success";
@@ -73,6 +76,22 @@ export async function route(ctx: AuthContext): Promise<void> {
       intent = "lengkapi_start";
       handlerName = "handleLengkapiCommand";
       await handleLengkapiCommand(ctx);
+      status = "success";
+      return;
+    }
+
+    if (isSetoranCommand(text)) {
+      intent = "setoran_start";
+      handlerName = "handleSetoranCommand";
+      await handleSetoranCommand(ctx);
+      status = "success";
+      return;
+    }
+
+    if (isTfCommand(text)) {
+      intent = "tf_start";
+      handlerName = "handleTfCommand";
+      await handleTfCommand(ctx);
       status = "success";
       return;
     }
@@ -103,6 +122,16 @@ export async function route(ctx: AuthContext): Promise<void> {
       if (handled) {
         intent = `lengkapi_${convState.step.toLowerCase()}`;
         handlerName = "handleLengkapiFlow";
+        status = "success";
+        return;
+      }
+    }
+
+    if (convState?.flow === "setoran") {
+      const handled = await handleSetoranFlow(ctx);
+      if (handled) {
+        intent = `setoran_${convState.step.toLowerCase()}`;
+        handlerName = "handleSetoranFlow";
         status = "success";
         return;
       }
