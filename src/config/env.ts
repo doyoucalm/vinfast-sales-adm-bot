@@ -49,6 +49,11 @@ const envSchema = z.object({
 
   SUPER_ADMIN_PHONE: z.string().regex(/^\d{10,15}$/),
 
+  SP_OMPANG_FILE: z.string().default(""),
+  SYNC_OMPANG_INTERVAL_MS: z.coerce.number().int().positive().default(86400000), // 24h daily
+
+  DAILY_REPORT_ENABLED: z.coerce.boolean().default(true),
+
   RATELIMIT_WINDOW_SEC: z.coerce.number().int().positive().default(60),
   RATELIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(30),
 });

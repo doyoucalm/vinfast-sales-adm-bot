@@ -1,6 +1,8 @@
 import { logger } from "../services/logger.js";
 import { syncKaryawan } from "./sync-karyawan.js";
 import { syncSpkLeads } from "./sync-spk.js";
+import { syncOmpang } from "./sync-ompang.js";
+import { scheduleDailyReport } from "./daily-report.js";
 import { env } from "../config/env.js";
 
 const HOUR = 60 * 60_000;
@@ -26,6 +28,11 @@ const jobs: JobConfig[] = [
     intervalMs: env.SYNC_SPK_INTERVAL_MS,
     fn: () => syncSpkLeads(),
   },
+  {
+    name: "sync_ompang",
+    intervalMs: env.SYNC_OMPANG_INTERVAL_MS,
+    fn: () => syncOmpang(),
+  },
 ];
 
 const handles: NodeJS.Timeout[] = [];
@@ -35,10 +42,13 @@ export function startScheduler(): void {
     // Run once on boot after 30s warmup delay, then on fixed interval
     setTimeout(() => runJob(job), 30_000);
     const h = setInterval(() => runJob(job), job.intervalMs);
-    h.unref(); // don't keep process alive if everything else exits
+    h.unref();
     handles.push(h);
     logger.info({ job: job.name, intervalMs: job.intervalMs }, "scheduler.started");
   }
+
+  // Daily report at 08:00 WIB (01:00 UTC)
+  scheduleDailyReport();
 }
 
 export function stopScheduler(): void {

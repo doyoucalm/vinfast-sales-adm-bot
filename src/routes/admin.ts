@@ -2,7 +2,9 @@ import { Hono } from "hono";
 import { env } from "../config/env.js";
 import { syncKaryawan } from "../jobs/sync-karyawan.js";
 import { syncSpkLeads } from "../jobs/sync-spk.js";
+import { syncOmpang } from "../jobs/sync-ompang.js";
 import { migrateDriveFromLeadsSpk } from "../jobs/drive-migrate.js";
+import { sendDailyReport } from "../jobs/daily-report.js";
 import { logger } from "../services/logger.js";
 
 export const adminRouter = new Hono();
@@ -33,6 +35,27 @@ adminRouter.post("/sync/spk", async (c) => {
     return c.json({ ok: true, result });
   } catch (err) {
     logger.error({ err: (err as Error).message }, "admin.sync_spk.failed");
+    return c.json({ ok: false, error: (err as Error).message }, 500);
+  }
+});
+
+adminRouter.post("/sync/ompang", async (c) => {
+  const force = c.req.query("force") === "1";
+  try {
+    const result = await syncOmpang({ force });
+    return c.json({ ok: true, result });
+  } catch (err) {
+    logger.error({ err: (err as Error).message }, "admin.sync_ompang.failed");
+    return c.json({ ok: false, error: (err as Error).message }, 500);
+  }
+});
+
+adminRouter.post("/report/daily", async (c) => {
+  try {
+    await sendDailyReport();
+    return c.json({ ok: true });
+  } catch (err) {
+    logger.error({ err: (err as Error).message }, "admin.report_daily.failed");
     return c.json({ ok: false, error: (err as Error).message }, 500);
   }
 });

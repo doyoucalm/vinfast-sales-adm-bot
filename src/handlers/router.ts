@@ -6,6 +6,8 @@ import { isStartCommand, handleStart } from "./start.js";
 import { isSpkCommand, isBatalCommand, handleSpkCommand, handleSpkBatal, handleSpkFlow } from "./spk.js";
 import { isLengkapiCommand, handleLengkapiCommand, handleLengkapiBatal, handleLengkapiFlow } from "./lengkapi.js";
 import { isSetoranCommand, isTfCommand, handleSetoranCommand, handleTfCommand, handleSetoranBatal, handleSetoranFlow } from "./setoran.js";
+import { isStatusCommand, handleStatusCommand } from "./status.js";
+import { isDoCommand, handleDoCommand } from "./do.js";
 import { handleIncomingMedia, handlePendingMediaChoice } from "./media-ocr.js";
 import { getConvState } from "../services/conv-state.js";
 import { isBotOff } from "../services/session-mode.js";
@@ -92,6 +94,22 @@ export async function route(ctx: AuthContext): Promise<void> {
       intent = "tf_start";
       handlerName = "handleTfCommand";
       await handleTfCommand(ctx);
+      status = "success";
+      return;
+    }
+
+    if (isStatusCommand(text)) {
+      intent = "status_query";
+      handlerName = "handleStatusCommand";
+      await handleStatusCommand(ctx);
+      status = "success";
+      return;
+    }
+
+    if (isDoCommand(text)) {
+      intent = "do_query";
+      handlerName = "handleDoCommand";
+      await handleDoCommand(ctx);
       status = "success";
       return;
     }

@@ -189,8 +189,9 @@ export const ompangTracking = pgTable(
     lastSynced: timestamp("last_synced", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({
-    idxVin: index("idx_ompang_vin").on(t.vin),
+    uqVin: uniqueIndex("uq_ompang_vin").on(t.vin),
     idxStatusFaktur: index("idx_ompang_status_faktur").on(t.statusFaktur),
+    idxNamaStnk: index("idx_ompang_nama_stnk").on(t.namaStnk),
   })
 );
 
