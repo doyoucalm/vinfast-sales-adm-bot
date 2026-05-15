@@ -8,6 +8,8 @@ import { redis, redisHealth } from "./services/redis.js";
 import { evolution } from "./services/evolution.js";
 import webhookWa from "./routes/webhook-wa.js";
 import { mediaPreviewRouter } from "./routes/media-preview.js";
+import { adminRouter } from "./routes/admin.js";
+import { startScheduler, stopScheduler } from "./jobs/scheduler.js";
 
 const app = new Hono();
 
@@ -35,10 +37,14 @@ app.get("/health", async (c) => {
 
 app.route("/webhook", webhookWa);
 app.route("/media", mediaPreviewRouter);
+app.route("/admin", adminRouter);
 
 const server = serve(
   { fetch: app.fetch, port: env.PORT, hostname: "0.0.0.0" },
-  (info) => logger.info({ port: info.port, env: env.NODE_ENV }, "vinfast-bot started")
+  (info) => {
+    logger.info({ port: info.port, env: env.NODE_ENV }, "vinfast-bot started");
+    if (env.SCHEDULER_ENABLED) startScheduler();
+  }
 );
 
 const shutdown = async (signal: string) => {
@@ -46,6 +52,7 @@ const shutdown = async (signal: string) => {
   server.close(async (err) => {
     if (err) logger.error({ err: err.message }, "Server close error");
     try {
+      stopScheduler();
       await redis.quit();
       await dbClose();
       logger.info("Shutdown clean");

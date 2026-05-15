@@ -24,8 +24,11 @@ const envSchema = z.object({
   SP_TOKEN_FILE: z.string(),
   SP_SITE_URL: z.string().url(),
   SP_DOCUMENTS_PATH: z.string(),
-  SP_SYNC_INTERVAL_MS: z.coerce.number().int().positive().default(120000),
+  SP_SYNC_INTERVAL_MS: z.coerce.number().int().positive().default(21600000), // 6 hours
   SP_FILES: z.string().transform((s) => s.split(",").map((x) => x.trim()).filter(Boolean)),
+  SP_KARYAWAN_FILE: z.string().default(""),
+  SP_KARYAWAN_SHEET: z.string().default("Karyawan"),
+  SCHEDULER_ENABLED: z.coerce.boolean().default(true),
 
   GOOGLE_SA_KEY_FILE: z.string(),
   GDRIVE_ROOT_FOLDER_ID: z.string().min(1),

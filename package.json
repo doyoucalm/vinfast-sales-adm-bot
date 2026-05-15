@@ -20,6 +20,8 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "karyawan:seed": "tsx src/cli/karyawan-seed.ts",
     "karyawan:list": "tsx src/cli/karyawan-list.ts",
+    "karyawan:sync": "tsx src/cli/sync-karyawan.ts",
+    "karyawan:sync:force": "tsx src/cli/sync-karyawan.ts --force",
     "ocr:test": "tsx scripts/test-ocr.ts"
   },
   "dependencies": {
