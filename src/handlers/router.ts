@@ -7,6 +7,7 @@ import { isSpkCommand, isBatalCommand, handleSpkCommand, handleSpkBatal, handleS
 import { isLengkapiCommand, handleLengkapiCommand, handleLengkapiBatal, handleLengkapiFlow } from "./lengkapi.js";
 import { isSetoranCommand, isTfCommand, handleSetoranCommand, handleTfCommand, handleSetoranBatal, handleSetoranFlow } from "./setoran.js";
 import { isStatusCommand, handleStatusCommand } from "./status.js";
+import { isStatsCommand, handleStatsCommand } from "./stats.js";
 import { isDoCommand, handleDoCommand } from "./do.js";
 import { handleIncomingMedia, handlePendingMediaChoice } from "./media-ocr.js";
 import { getConvState } from "../services/conv-state.js";
@@ -94,6 +95,14 @@ export async function route(ctx: AuthContext): Promise<void> {
       intent = "tf_start";
       handlerName = "handleTfCommand";
       await handleTfCommand(ctx);
+      status = "success";
+      return;
+    }
+
+    if (isStatsCommand(text)) {
+      intent = "stats_query";
+      handlerName = "handleStatsCommand";
+      await handleStatsCommand(ctx);
       status = "success";
       return;
     }

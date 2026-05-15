@@ -2,6 +2,9 @@ import { logger } from "../services/logger.js";
 import { syncKaryawan } from "./sync-karyawan.js";
 import { syncSpkLeads } from "./sync-spk.js";
 import { syncOmpang } from "./sync-ompang.js";
+import { syncDo } from "./sync-do.js";
+import { syncSpkMaster } from "./sync-spk-master.js";
+import { syncStok } from "./sync-stok.js";
 import { scheduleDailyReport } from "./daily-report.js";
 import { env } from "../config/env.js";
 
@@ -32,6 +35,21 @@ const jobs: JobConfig[] = [
     name: "sync_ompang",
     intervalMs: env.SYNC_OMPANG_INTERVAL_MS,
     fn: () => syncOmpang(),
+  },
+  {
+    name: "sync_do",
+    intervalMs: env.SYNC_DO_INTERVAL_MS,
+    fn: () => syncDo(),
+  },
+  {
+    name: "sync_spk_master",
+    intervalMs: env.SYNC_SPK_MASTER_INTERVAL_MS,
+    fn: () => syncSpkMaster(),
+  },
+  {
+    name: "sync_stok",
+    intervalMs: env.SYNC_STOK_INTERVAL_MS,
+    fn: () => syncStok(),
   },
 ];
 

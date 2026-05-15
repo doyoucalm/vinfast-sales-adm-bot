@@ -1,4 +1,4 @@
-import { gte, lt, and, eq, isNull, isNotNull, count, sql } from "drizzle-orm";
+import { gte, lt, and, eq, isNull, count } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { spkLeads, ompangTracking, stok, karyawan } from "../db/schema.js";
 import { evolution } from "../services/evolution.js";
@@ -144,18 +144,17 @@ export async function sendDailyReport(): Promise<void> {
   logger.info("daily_report.start");
 
   try {
-    // Owner / Admin: send full report
+    // Sementara: kirim full report HANYA ke owner. Admin + manager di-skip dulu.
     const fullStats = await buildReport(null, now);
     const fullMsg   = formatReport(fullStats, now, null);
 
-    // Get owner + admin recipients
     const owners = await db
       .select({ noWa: karyawan.noWa, nama: karyawan.nama, dealer: karyawan.dealer })
       .from(karyawan)
       .where(
         and(
           eq(karyawan.active, true),
-          sql`${karyawan.role} IN ('owner','admin')`
+          eq(karyawan.role, "owner")
         )
       );
 
@@ -167,29 +166,7 @@ export async function sendDailyReport(): Promise<void> {
       }
     }
 
-    // Manager (BM): send dealer-specific report
-    const managers = await db
-      .select({ noWa: karyawan.noWa, nama: karyawan.nama, dealer: karyawan.dealer })
-      .from(karyawan)
-      .where(
-        and(
-          eq(karyawan.active, true),
-          eq(karyawan.role, "manager")
-        )
-      );
-
-    for (const bm of managers) {
-      if (!bm.dealer) continue;
-      try {
-        const bmStats = await buildReport(bm.dealer, now);
-        const bmMsg   = formatReport(bmStats, now, bm.dealer);
-        await evolution.sendText(bm.noWa, bmMsg, { delayMs: 800 });
-      } catch (err) {
-        logger.warn({ noWa: bm.noWa, dealer: bm.dealer, err: (err as Error).message }, "daily_report.bm_send_failed");
-      }
-    }
-
-    logger.info({ owners: owners.length, managers: managers.length }, "daily_report.done");
+    logger.info({ owners: owners.length }, "daily_report.done");
   } catch (err) {
     logger.error({ err: (err as Error).message, stack: (err as Error).stack }, "daily_report.failed");
   }

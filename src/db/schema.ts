@@ -110,7 +110,7 @@ export const spk = pgTable(
   {
     id: serial("id").primaryKey(),
     formId: integer("form_id"),
-    noSpk: text("no_spk").unique(),
+    noSpk: text("no_spk"),
     tglPengajuan: date("tgl_pengajuan"),
     dealer: text("dealer"),
     customerId: integer("customer_id").references(() => customer.id),
@@ -159,32 +159,45 @@ export const stok = pgTable(
   })
 );
 
+// Date columns stored as text — sumber data Excel sering pakai string "DONE"
+// alih-alih tanggal asli. Pending detection: IS NULL tetap valid.
 export const ompangTracking = pgTable(
   "ompang_tracking",
   {
     id: serial("id").primaryKey(),
     vin: varchar("vin", { length: 17 }),
+    noMesin: text("no_mesin"),
     namaStnk: text("nama_stnk"),
+    dealer: text("dealer"),
     tipeMobil: text("tipe_mobil"),
+    warna: text("warna"),
     payment: text("payment"),
     domisili: text("domisili"),
-    tglPengajuanOmpang: date("tgl_pengajuan_ompang"),
-    tglPenerimaanOmpang: date("tgl_penerimaan_ompang"),
-    tglSerahTerimaOmpang: date("tgl_serah_terima_ompang"),
-    tglPengajuanFaktur: date("tgl_pengajuan_faktur"),
-    tglPenerimaanFaktur: date("tgl_penerimaan_faktur"),
+    tglDo: text("tgl_do"),
+    tglPengajuanOmpang: text("tgl_pengajuan_ompang"),
+    tglPenerimaanOmpang: text("tgl_penerimaan_ompang"),
+    tglSerahTerimaOmpang: text("tgl_serah_terima_ompang"),
+    tglPengajuanFaktur: text("tgl_pengajuan_faktur"),
+    tglPenerimaanFaktur: text("tgl_penerimaan_faktur"),
     statusFaktur: text("status_faktur"),
-    tglPengajuanStnkBpkb: date("tgl_pengajuan_stnk_bpkb"),
+    tglPengajuanStnkBpkb: text("tgl_pengajuan_stnk_bpkb"),
     noSuratPengajuan: text("no_surat_pengajuan"),
-    tglPenerimaanStnk: date("tgl_penerimaan_stnk"),
+    tglPenerimaanStnk: text("tgl_penerimaan_stnk"),
     noSuratPenerimaanStnk: text("no_surat_penerimaan_stnk"),
-    tglSerahTerimaStnk: date("tgl_serah_terima_stnk"),
+    tglSerahTerimaStnk: text("tgl_serah_terima_stnk"),
     noSuratSerahStnk: text("no_surat_serah_stnk"),
-    tglPenerimaanBpkbBiro: date("tgl_penerimaan_bpkb_biro"),
-    tglSerahTerimaBpkb: date("tgl_serah_terima_bpkb"),
+    statusStnk: text("status_stnk"),
+    penerimaStnk: text("penerima_stnk"),
+    tglPenerimaanBpkbBiro: text("tgl_penerimaan_bpkb_biro"),
+    tglSerahTerimaBpkb: text("tgl_serah_terima_bpkb"),
     noSuratSerahBpkb: text("no_surat_serah_bpkb"),
+    statusBpkb: text("status_bpkb"),
+    penerimaBpkb: text("penerima_bpkb"),
     noInvoice: text("no_invoice"),
     nominalPayment: numeric("nominal_payment", { precision: 15, scale: 2 }),
+    pembayaran: text("pembayaran"),
+    rekening: text("rekening"),
+    notes: text("notes"),
     rawRow: jsonb("raw_row"),
     lastSynced: timestamp("last_synced", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -192,6 +205,34 @@ export const ompangTracking = pgTable(
     uqVin: uniqueIndex("uq_ompang_vin").on(t.vin),
     idxStatusFaktur: index("idx_ompang_status_faktur").on(t.statusFaktur),
     idxNamaStnk: index("idx_ompang_nama_stnk").on(t.namaStnk),
+    idxDealer: index("idx_ompang_dealer").on(t.dealer),
+  })
+);
+
+// M7 — DO log (units delivered from factory to dealer)
+export const doLog = pgTable(
+  "do_log",
+  {
+    id: serial("id").primaryKey(),
+    vin: varchar("vin", { length: 17 }).notNull().unique(),
+    noMesin: text("no_mesin"),
+    tipeMobil: text("tipe_mobil"),
+    warna: text("warna"),
+    tahunUnit: integer("tahun_unit"),
+    namaStnk: text("nama_stnk"),
+    noHp: text("no_hp"),
+    noKtp: text("no_ktp"),
+    pembayaran: text("pembayaran"),
+    alamat: text("alamat"),
+    dealerSj: text("dealer_sj"),
+    tglDo: date("tgl_do"),
+    rawRow: jsonb("raw_row"),
+    lastSynced: timestamp("last_synced", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    idxNamaStnk: index("idx_do_nama_stnk").on(t.namaStnk),
+    idxDealer:   index("idx_do_dealer").on(t.dealerSj),
+    idxTglDo:    index("idx_do_tgl").on(t.tglDo),
   })
 );
 

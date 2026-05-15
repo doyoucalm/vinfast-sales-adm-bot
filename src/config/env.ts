@@ -28,7 +28,7 @@ const envSchema = z.object({
   SP_FILES: z.string().transform((s) => s.split(",").map((x) => x.trim()).filter(Boolean)),
   SP_KARYAWAN_FILE: z.string().default(""),
   SP_KARYAWAN_SHEET: z.string().default("Karyawan"),
-  SP_KARYAWAN_SYNC_INTERVAL_MS: z.coerce.number().int().positive().default(86400000), // 24h daily check (etag-gated → effectively monthly)
+  SP_KARYAWAN_SYNC_INTERVAL_MS: z.coerce.number().int().positive().default(2073600000), // 24 hari (etag-gated; max Node setInterval ~24.85d)
   SYNC_SPK_INTERVAL_MS: z.coerce.number().int().positive().default(600000), // 10 min
   SCHEDULER_ENABLED: z.coerce.boolean().default(true),
 
@@ -50,7 +50,14 @@ const envSchema = z.object({
   SUPER_ADMIN_PHONE: z.string().regex(/^\d{10,15}$/),
 
   SP_OMPANG_FILE: z.string().default(""),
-  SYNC_OMPANG_INTERVAL_MS: z.coerce.number().int().positive().default(86400000), // 24h daily
+  SP_OMPANG_SHEET: z.string().default("Jurnal Ompang"),
+  SYNC_OMPANG_INTERVAL_MS: z.coerce.number().int().positive().default(86400000), // 1 hari
+  SP_DO_FILE: z.string().default(""),
+  SP_DO_SHEET: z.string().default("Sheet1"),
+  SYNC_DO_INTERVAL_MS: z.coerce.number().int().positive().default(86400000), // 1 hari
+  SP_SPK_FILE: z.string().default(""),
+  SYNC_SPK_MASTER_INTERVAL_MS: z.coerce.number().int().positive().default(28800000), // 8h = 3x/hari
+  SYNC_STOK_INTERVAL_MS: z.coerce.number().int().positive().default(28800000), // 8h (stok update sering)
 
   DAILY_REPORT_ENABLED: z.coerce.boolean().default(true),
 
