@@ -294,3 +294,53 @@ export const conversationState = pgTable("conversation_state", {
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// M5 — SPK leads staging (draft dari bot → sync ke DB tiap 10 menit)
+export const spkLeads = pgTable(
+  "spk_leads",
+  {
+    id: serial("id").primaryKey(),
+    noSpkTemp: text("no_spk_temp").notNull().unique(),
+    sheetRowNumber: integer("sheet_row_number"),
+    rowHash: varchar("row_hash", { length: 40 }).notNull(),
+    namaPembeli: text("nama_pembeli"),
+    nikPembeli: varchar("nik_pembeli", { length: 16 }),
+    tglLahirPembeli: text("tgl_lahir_pembeli"),
+    alamatPembeli: text("alamat_pembeli"),
+    salesWa: varchar("sales_wa", { length: 20 }),
+    salesNama: text("sales_nama"),
+    dealer: text("dealer"),
+    tipeMobil: text("tipe_mobil"),
+    warna: text("warna"),
+    tipeBaterai: text("tipe_baterai"),
+    statusLengkap: text("status_lengkap"),
+    fotoKtpPembeli: text("foto_ktp_pembeli"),
+    fotoKtpStnk: text("foto_ktp_stnk"),
+    fotoTf: text("foto_tf"),
+    tfBank: text("tf_bank"),
+    tfNominal: text("tf_nominal"),
+    tfBerita: text("tf_berita"),
+    tfReferensi: text("tf_referensi"),
+    notes: text("notes"),
+    rawRow: jsonb("raw_row").notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    idxStatus:     index("idx_spk_leads_status").on(t.statusLengkap),
+    idxSalesWa:    index("idx_spk_leads_sales_wa").on(t.salesWa),
+    idxNamaPembeli: index("idx_spk_leads_nama").on(t.namaPembeli),
+    idxNik:        index("idx_spk_leads_nik").on(t.nikPembeli),
+    idxSynced:     index("idx_spk_leads_synced").on(t.syncedAt),
+  })
+);
+
+// Sync state checkpoint — dipakai M4, M5 untuk record last run + result
+export const syncState = pgTable("sync_state", {
+  jobName: text("job_name").primaryKey(),
+  lastRunAt: timestamp("last_run_at", { withTimezone: true }).notNull().defaultNow(),
+  lastSuccessAt: timestamp("last_success_at", { withTimezone: true }),
+  lastResult: jsonb("last_result"),
+  cursor: text("cursor"),
+});

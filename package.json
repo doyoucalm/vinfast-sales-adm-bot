@@ -22,6 +22,9 @@
     "karyawan:list": "tsx src/cli/karyawan-list.ts",
     "karyawan:sync": "tsx src/cli/sync-karyawan.ts",
     "karyawan:sync:force": "tsx src/cli/sync-karyawan.ts --force",
+    "spk:sync": "tsx src/cli/sync-spk.ts",
+    "drive:migrate": "tsx src/cli/drive-migrate.ts",
+    "drive:migrate:dry": "tsx src/cli/drive-migrate.ts --dry",
     "ocr:test": "tsx scripts/test-ocr.ts"
   },
   "dependencies": {
@@ -41,6 +44,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/mime-types": "^3.0.1",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.11.10",
     "drizzle-kit": "^0.30.1",

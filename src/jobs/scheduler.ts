@@ -1,8 +1,10 @@
 import { logger } from "../services/logger.js";
 import { syncKaryawan } from "./sync-karyawan.js";
+import { syncSpkLeads } from "./sync-spk.js";
 import { env } from "../config/env.js";
 
 const HOUR = 60 * 60_000;
+const DAY  = 24 * HOUR;
 
 interface JobConfig {
   name: string;
@@ -10,11 +12,19 @@ interface JobConfig {
   fn: () => Promise<unknown>;
 }
 
+// Karyawan: cek harian, tapi syncKaryawan skip via etag kalau Excel tidak berubah.
+// Efektif monthly karena HR jarang update file, tapi tetap catch perubahan dalam 24h.
+// (Node.js timer max ~24.8 hari, jadi 30-day setInterval tidak safe.)
 const jobs: JobConfig[] = [
   {
     name: "sync_karyawan",
-    intervalMs: env.SP_SYNC_INTERVAL_MS > 0 ? env.SP_SYNC_INTERVAL_MS : 6 * HOUR,
+    intervalMs: env.SP_KARYAWAN_SYNC_INTERVAL_MS,
     fn: () => syncKaryawan(),
+  },
+  {
+    name: "sync_spk_leads",
+    intervalMs: env.SYNC_SPK_INTERVAL_MS,
+    fn: () => syncSpkLeads(),
   },
 ];
 
