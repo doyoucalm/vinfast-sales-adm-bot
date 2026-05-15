@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { ompangTracking, syncState } from "../db/schema.js";
 import { spDownloadFile, spGetFileMeta } from "../services/sharepoint.js";
@@ -237,6 +237,26 @@ export async function syncOmpang(opts: { force?: boolean } = {}): Promise<SyncOm
       logger.warn({ vin: row.vin, nama: row.namaStnk, err: (err as Error).message }, "sync.ompang.row_failed");
     }
   }
+
+  // Derive dealer dari do_log via VIN match (Jurnal Ompang sheet tidak punya kolom dealer).
+  // Normalisasi `dealer_sj` (mis. "VINFAST SOEKARNO HATTA") ke enum SETIABUDI/PASTEUR/LASWI/SOETA/OMA.
+  const dealerUpdate = await db.execute(sql`
+    UPDATE ompang_tracking ot SET dealer = sub.dealer_norm
+    FROM (
+      SELECT dl.vin,
+        CASE
+          WHEN dl.dealer_sj ILIKE '%setiabudi%'                                THEN 'SETIABUDI'
+          WHEN dl.dealer_sj ILIKE '%pasteur%'                                  THEN 'PASTEUR'
+          WHEN dl.dealer_sj ILIKE '%laswi%'                                    THEN 'LASWI'
+          WHEN dl.dealer_sj ILIKE '%soekarno%' OR dl.dealer_sj ILIKE '%soetta%' THEN 'SOETA'
+          WHEN dl.dealer_sj ILIKE '%oma%'                                      THEN 'OMA'
+          ELSE NULL
+        END AS dealer_norm
+      FROM do_log dl
+    ) sub
+    WHERE ot.vin = sub.vin AND sub.dealer_norm IS NOT NULL
+  `);
+  logger.info({ dealer_filled: dealerUpdate.rowCount ?? 0 }, "sync.ompang.dealer_derived");
 
   await redis.set(ETAG_KEY, meta.TimeLastModified);
 
