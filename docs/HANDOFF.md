@@ -1,149 +1,175 @@
-# Handoff Note — untuk Sesi Sonnet Berikutnya
+# Handoff Note — Phase 0 → Phase 1
 
-**Dari:** Sesi 12 Mei 2026 (Phase 0 — Discovery)
-**Untuk:** Whoever Sonnet yang lanjut kerja project ini next
-**Repo:** github.com/doyoucalm/vinfast-sales-adm-bot (private)
+**Last session:** 13 Mei 2026 — Phase 0 selesai, infrastruktur full deployed.
 **Working dir:** `/home/wabot/vinfast-bot/`
+**Owner:** Lucky Surya Haryadi (`Lucky@amapartner.org`, WA `082218255795`)
 
 ---
 
-## 👋 Selamat datang. Baca ini dulu sebelum ngapa-ngapain.
+## 📦 What's Running Now
 
-User: **Lucky Surya Haryadi** — pemilik PT Otomobil Multi Artha, dealer VinFast (4 cabang).
-Style komunikasi: campur Indonesia + istilah teknis, suka langsung ke point, tidak suka jawaban panjang.
+### Docker stack (di VPS `109.123.240.168`)
+```
+docker compose -f /home/wabot/vinfast-bot/docker/docker-compose.yml ps
+```
 
----
+| Container | Role | Status |
+|-----------|------|--------|
+| `vinfast-bot` | Hono + TS app, port 3001 | healthy |
+| `vinfast-db` | Postgres 16, port 5433 (host) | healthy |
+| `vinfast-redis` | Redis 7, port 6380 (host) | healthy |
+| `evolution_api` | WA Baileys gateway | instance `vinfast-bot` open |
+| `evolution_nginx` | HTTPS edge proxy | serves vinfast.caricreatormu.my.id |
 
-## 📍 State Project Saat Ini
+### External endpoints
+- `https://vinfast.caricreatormu.my.id/health` — JSON status (db+redis)
+- `https://vinfast.caricreatormu.my.id/webhook/wa` — Evolution webhook receiver
+- WA bot number: `6285101438585` (Vinfast Otomobil Multi Artha)
 
-**Phase 0 — Discovery** ✅ selesai. Siap masuk Phase 0 — Setup Infra / Phase 1 — MVP Core.
-
-Yang sudah pasti dan **JANGAN dipertanyakan ulang**:
-- Auth Microsoft pakai **SharePoint REST scope `AllSites.Read`** (BUKAN Graph API `Sites.Read.All`). Sudah di-test, jalan tanpa admin consent.
-- LLM pakai **OpenRouter** (`sk-or-v1-...` di `.env`), model `deepseek/deepseek-chat` untuk NLU, `google/gemini-flash-1.5` untuk vision/OCR. Sudah ada key.
-- VPS production sudah ada di `109.123.240.168`, Ubuntu 24.04, port 80/443/5432/8000/8080 dipakai → bot pakai 3001/5433/6380.
-- nginx existing (`evolution_nginx`) — JANGAN deploy Caddy baru, tambah server block ke nginx existing.
-- Evolution API existing — buat instance baru di container yang sama, bukan deploy Evolution container baru.
-- Data quality di Excel master BURUK → normalizer mutlak (lihat `docs/LEARNINGS.md` section 4).
-
----
-
-## 🎯 Yang Harus Dikerjakan Berikutnya
-
-**Prioritas urut:**
-
-### Step 1 — Generate Repo Skeleton (1-2 sesi kerja)
-Belum ada source code sama sekali. User akan minta generate full skeleton:
-- `package.json` dengan dependencies
-- `tsconfig.json`, `drizzle.config.ts`
-- `src/index.ts` (Express bootstrap)
-- `src/db/schema.ts` (Drizzle) — schema sudah ada di `docs/ARCHITECTURE.md`
-- `src/services/sharepoint-rest.ts` (READ-only client)
-- `src/services/llm.ts` (OpenRouter wrapper)
-- `src/services/evolution.ts` (WA gateway)
-- `src/services/postgres.ts`, `src/services/redis.ts`
-- `Dockerfile`, `docker/docker-compose.yml`
-- `nginx/vinfast.conf` (server block)
-
-User suka **production-ready code dari awal**, bukan stub-stub kosong. Tapi jangan over-engineer.
-
-### Step 2 — Implement Sync Worker
-Modul `src/workers/sharepoint-sync.ts` — download .xlsx via SharePoint REST, parse pakai `exceljs`, normalize, UPSERT ke PostgreSQL.
-
-**Penting:** header Excel TIDAK di row 1. Pakai `findHeaderRow()` heuristik dari `docs/LEARNINGS.md` section 5.
-
-### Step 3 — Query Engine
-Handler `query-stok`, `query-ompang`, `query-stnk-bpkb` dengan flow:
-1. Regex pre-parse untuk command yang jelas (`stok vf3 hitam`)
-2. Kalau ambigu → forward ke LLM
-3. Query PostgreSQL
-4. Format reply WA
-
-### Step 4 — SPK Intake Conversational
-State machine di Redis, 16 field, kirim ke Google Sheets (perlu GCP setup dulu).
+### Verified integrations
+| Service | Status | Notes |
+|---------|--------|-------|
+| Google Sheets write | ✅ | `SalesBot_Inbox` ID `1liAqMPH_IBYpzJJk8Si6zK4wZtRXOLDEg4GibxTwSrc` |
+| Google Drive folder create | ✅ | Root `14OFR6nYWrcBYsBsTqtXMBTMlw1ZKkfON`; **upload file gak bisa** (SA no storage) — fallback ke VPS local `/opt/sales-bot/uploads/` |
+| SharePoint REST read | ✅ | Token auto-refresh (refresh_token cycle 90 hari) |
+| OpenRouter NLU (deepseek-chat) | ✅ | Intent + entity extraction tested |
+| OpenRouter vision (gemini-2.5-flash) | ✅ | Untuk OCR KTP/rekening/bukti TF |
+| Evolution → bot webhook (Docker DNS) | ✅ | `http://vinfast-bot:3001/webhook/wa` |
+| End-to-end ping → pong | ✅ | tested 13 Mei 03:43 UTC |
 
 ---
 
-## ⚠️ Hal-Hal yang Sering Bikin Salah
+## 🎯 Phase 1 — Next Up (urut prioritas Lucky)
 
-1. **Tipe mobil di Excel tidak konsisten** — `VF 3`/`VF3`/`VF E34`/`VFE 34`. SELALU pakai `normalizers.ts` sebelum query/insert.
-2. **Booking DP kadang string `"  5,000,000 "` kadang numeric** — parse defensive, simpan raw di kolom `_raw` JSONB.
-3. **Header Excel ada di row 6-7**, bukan row 1.
-4. **Token SharePoint refresh manual** — refresh token sliding 90 hari. Auto-renewal harus jalan tiap 24 jam.
-5. **JANGAN PUSH SECRETS** — `.env` di-gitignore. Token di `credentials/*.json` juga di-gitignore. Kalau user kasih API key di chat, save di `.env`, jangan paste ke file yang akan di-commit.
-6. **JANGAN deploy Caddy** — nginx existing harus dipakai.
-7. **PostgreSQL VinFast di port 5433** — 5432 dipakai container `atria-db`.
+### A. SPK Intake Trial (paling tinggi)
+- `src/handlers/spk-intake.ts` — conversational state machine di Redis TTL 30 menit, 16 field sesuai sheet SPK
+- Per-field validation: NIK 16 digit, no HP Indo, tipe mobil dari enum
+- Final step: append row ke Sheets `Inbox_SPK_Bot` + create folder `uploads/SPK/2026/{NoSPK}/`
+- Trigger: command WA `spk` atau `/spk`
+
+### B. Cek by Database Karyawan
+- Seed `users` table dari `DB_HR.xlsx` SharePoint (27 karyawan, default role `sales_executive`)
+- `src/handlers/query-user.ts` — `cari karyawan budi` / `/karyawan budi` → SELECT * FROM users WHERE LOWER(nama) LIKE '%budi%'
+- Reply WA: nama, role, dealer, no_hp (kalau ada)
+
+### C. Photo Upload + Parsing
+1. **KTP** (`src/handlers/upload-ktp.ts`)
+   - Download foto dari Evolution API (Bailieys media)
+   - Save ke `uploads/SPK/{NoSPK}/KTP_{timestamp}.jpg` (atau folder ad-hoc kalau intake context belum ada)
+   - OCR via OpenRouter `gemini-2.5-flash` (prompt structured JSON output)
+   - Fields: NIK, nama, ttl, alamat, RT/RW, kel, kec, kab, prov, agama, status_kawin, pekerjaan, confidence
+   - Append ke `Inbox_KTP_Bot` Sheets + insert ke `customer` table
+
+2. **Rekening / Bukti TF** (`src/handlers/upload-payment.ts`)
+   - Save ke `uploads/SPK/{NoSPK}/TF_{timestamp}.jpg`
+   - OCR vision → JSON: bank_pengirim, nama_pengirim, nominal, tgl_transfer, no_ref, rek_tujuan
+   - Auto-match ke SPK aktif (customer no_hp + window 24h) → status `MATCHED` atau `NEEDS_REVIEW`
+   - Notif Finance via WA (kalau Finance role di users sudah ada)
+
+### Service modules yang harus dibuat dulu (dependency untuk A/B/C)
+- `src/services/sharepoint-rest.ts` — auto-refresh wrapper + download by path
+- `src/services/llm.ts` — OpenRouter client (NLU + vision), Redis cache, circuit breaker
+- `src/services/gsheets.ts` — append row, batch update
+- `src/services/storage.ts` — local file upload + url generator
+- `src/services/evolution-media.ts` — download media dari Evolution by message_id
+- `src/utils/normalizers.ts` — enum mapper, booking_dp parser, test row filter
+
+### Sync worker (parallel — bisa setelah A/B/C atau bareng)
+- `src/workers/sharepoint-sync.ts` — poll setiap 2 menit, parse 2 file Excel, UPSERT ke `spk`/`stok`/`ompang_tracking`
+- MD5 hash di `etl_state` untuk skip kalau unchanged
 
 ---
 
-## 🔑 Token & Credentials Lokasi
+## 🔑 Key Files & Config
 
 ```
 /home/wabot/vinfast-bot/
-├── .env                                    ← OpenRouter key + config (gitignored)
-└── credentials/
-    ├── sp-token.json                       ← SharePoint REST token, valid sampai Aug 2026
-    └── graph-token.json                    ← backup Graph User.Read token
+├── .env                        ← semua secret + path (di gitignore)
+├── credentials/
+│   ├── google-sa.json          ← chmod 600, SA: vinfast-bot-sa@vinfast-sales-admin.iam.gserviceaccount.com
+│   ├── sp-token.json           ← auto-refresh (Lucky's MS account)
+│   └── graph-token.json        ← backup, unused
+├── docs/
+│   ├── ARCHITECTURE.md         ← v1.3 final
+│   ├── LEARNINGS.md            ← data quality issues, Excel header heuristic
+│   ├── TODO.md                 ← checklist Phase 0-4
+│   └── HANDOFF.md              ← file ini
+├── src/
+│   ├── index.ts                ← Hono bootstrap + /health + /webhook/wa (ping/pong only)
+│   ├── config/env.ts           ← Zod validation semua env var
+│   ├── services/
+│   │   ├── logger.ts           ← Pino + redact secrets
+│   │   ├── redis.ts            ← ioredis client
+│   │   └── evolution.ts        ← WA send wrapper (sendText + normalizeJid)
+│   └── db/
+│       ├── client.ts           ← Drizzle + pg pool
+│       └── schema.ts           ← 13 tabel (roles, users, customer, spk, stok, ompang_tracking, payment, message_log, llm_call_log, audit_log, etl_state, conversation_state, permissions, role_permissions)
+├── docker/docker-compose.yml   ← stack production
+├── Dockerfile                  ← multi-stage Node 22
+├── scripts/cert-renew.sh       ← daily 03:00 cron (sudah terpasang)
+└── letsencrypt/config/         ← cert vinfast.caricreatormu.my.id (expire 11 Agu 2026)
 ```
 
-Saat token expired, refresh via curl:
+---
+
+## 🚨 Constraints — Jangan Lupa
+
+1. **SharePoint REST scope `AllSites.Read`** (BUKAN Graph `Sites.Read.All` — admin consent di-block tenant)
+2. **OpenRouter** (BUKAN DeepSeek direct, BUKAN Google Document AI) — satu key untuk multi-model
+3. **VPS local storage** untuk file uploads (SA Google Drive no storage quota)
+4. **nginx existing** (`evolution_nginx`) — JANGAN deploy nginx baru. Server block di `/home/wabot/evolution/nginx/conf.d/vinfast.conf`
+5. **Evolution instance existing** (`vinfast-bot`) — JANGAN create instance baru
+6. **Port mapping**:
+   - vinfast-db: 5433 host (5432 dipakai atria-db)
+   - vinfast-redis: 6380 host (6379 dipakai evolution_redis)
+   - vinfast-bot: 3001
+7. **Data quality** Excel buruk → `normalizers.ts` mandatory. Lihat `docs/LEARNINGS.md` section 4.
+8. **DB password** di `docker/.env` (DB_PASSWORD=vinfastdb2026) — sama dengan `../.env` (DATABASE_URL)
+
+---
+
+## 🛠 Quick Commands
+
 ```bash
-REFRESH=$(jq -r .refresh_token credentials/sp-token.json)
-curl -s -X POST \
-  "https://login.microsoftonline.com/1f2b5b87-aa36-4655-9000-f099ad69d106/oauth2/v2.0/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  --data-urlencode "grant_type=refresh_token" \
-  --data-urlencode "client_id=14d82eec-204b-4c2f-b7e8-296a70dab67e" \
-  --data-urlencode "refresh_token=$REFRESH" \
-  --data-urlencode "scope=https://amapartner.sharepoint.com/AllSites.Read offline_access"
+# Health
+curl https://vinfast.caricreatormu.my.id/health | jq
+
+# Bot logs
+docker logs vinfast-bot -f --tail 50
+
+# WA connection state
+EVO_KEY=b97deb0eedd6d6e62025663e7320e3c4dac18752b090724560e9fed4a6aecd95
+curl -s -H "apikey: $EVO_KEY" http://localhost:8080/instance/connectionState/vinfast-bot | jq
+
+# DB shell
+docker exec -it vinfast-db psql -U vinfast -d vinfast_bot
+
+# Redis shell
+docker exec -it vinfast-redis redis-cli
+
+# Restart bot setelah update code
+cd /home/wabot/vinfast-bot/docker && docker compose up -d --build vinfast-bot
+
+# DB schema push setelah edit src/db/schema.ts
+cd /home/wabot/vinfast-bot && npx drizzle-kit push --force
+
+# Test webhook locally (simulate WA message)
+curl -X POST http://localhost:3001/webhook/wa -H "Content-Type: application/json" \
+  -d '{"event":"messages.upsert","data":{"key":{"remoteJid":"6282218255795@s.whatsapp.net","fromMe":false},"message":{"conversation":"ping"},"pushName":"Test"}}'
 ```
 
 ---
 
-## 📚 Bacaan Wajib di Sesi Awal
+## 📝 Style notes untuk Lucky
 
-Sebelum reply user, baca **dalam urutan ini**:
-
-1. `README.md` — quick overview project
-2. `docs/PROGRESS-2026-05-12.md` — apa yang sudah dikerjakan
-3. `docs/LEARNINGS.md` — 10 temuan kunci, **section 4 (data quality) wajib**
-4. `docs/ARCHITECTURE.md` — schema PostgreSQL, docker-compose, nginx
-5. `docs/TODO.md` — checklist apa yang harus dikerjakan
-6. Memory `~/.claude/projects/-home-wabot/memory/project_vinfast_bot.md` (auto-loaded ke context)
+- Suka **production-ready code dari awal**, bukan stub
+- Bahasa Indonesia campur teknis, langsung ke point
+- Jangan over-engineer. Jangan tanya ulang yang sudah pasti.
+- Sebelum implement: check `docs/LEARNINGS.md` + `docs/ARCHITECTURE.md` + memory `project_vinfast_bot.md`
 
 ---
 
-## 💬 Style Komunikasi untuk Lucky
-
-- **Singkat, langsung.** Lucky tidak suka jawaban panjang.
-- **Mix Bahasa Indonesia + English teknis** OK. Contoh: "Token sudah expired, perlu refresh."
-- **Tunjukkan hasil sebelum penjelasan.** "✅ Done." → "Detail di bawah."
-- **Kalau ada konflik decision, BAHAS dengan singkat 2-3 opsi**, jangan langsung implement.
-- **Push code = explicit approval only.** Kalau Lucky bilang "push", baru push.
-- **Update memory + docs setiap milestone** — Lucky suka audit trail yang clean.
-
----
-
-## 🎯 Definition of Done untuk Phase 0 (referensi)
-
-Phase 0 dianggap selesai kalau:
-- [ ] `docker compose up` jalan tanpa error
-- [ ] Bot terima pesan WA "ping" → balas "pong"
-- [ ] `curl https://vinfast.caricreatormu.my.id/health` → 200
-- [ ] Sync worker download Jurnal Ompang.xlsx setiap 2 menit, UPSERT 107 rows ke PostgreSQL `ompang_tracking`
-- [ ] `curl /api/stats` → return count: `{spk: 165, stok: 79, ompang: 107}`
-
----
-
-## 🚨 Kalau Stuck
-
-Hal-hal yang BUKAN bug, tapi sengaja:
-- Excel `Booking DP` ada nilai "afsdf" → itu test data, skip
-- Sheet header bukan row 1 → fitur, bukan bug
-- Beberapa SPK row Name="cek"/"asd" → test data, filter
-- Stok lokasi "LASWI-SOETA" combined → normalize ke "LASWI" prefer (atau split jika perlu)
-- 13 group di /me/memberOf tanpa nama → memang scope User.Read terbatas, normal
-
-Kalau benar-benar stuck, **tunjukkan error message konkret ke Lucky**, jangan tebak.
-
-Selamat lanjut. 🚀
+## 🔢 Test Numbers
+- **Bot**: `6285101438585` (Vinfast Otomobil Multi Artha)
+- **Lucky** (untuk test): `6282218255795`
+- **Raisha** (rencana test berikutnya): `628112202304`

@@ -1,143 +1,90 @@
 # TODO — Action Items
 
-**Last updated:** 12 Mei 2026
+**Last updated:** 13 Mei 2026
 
 ---
 
-## 🟢 BLOCKERS (status per 12 Mei 2026 sore — SEMUA RESOLVED)
+## ✅ Phase 0 — Setup Infra (SELESAI 13 Mei 2026)
 
-- [x] **Nomor WA Bot** — `085101438585` **bisa dipakai untuk bot** (clarified Lucky). Tinggal scan QR di Evolution API instance baru.
-- [x] **LLM API Key** — OpenRouter key `sk-or-v1-797e...` sudah disimpan di `.env`. Pakai `openrouter.ai/api/v1` + model `deepseek/deepseek-chat` (NLU) & `google/gemini-flash-1.5` (vision).
-- [⏳] **GCP setup** — Google account access sudah ada, project `vinfast-sales-bot` belum di-create. **Bisa di-handle parallel saat Phase 1 development**, tidak block Phase 0.
+Semua infra running. Detail di `HANDOFF.md`.
 
----
-
-## Phase 0 — Setup Infra (Minggu 1)
-
-### Foundation
-- [ ] Buat folder repo di VPS: `/opt/vinfast-bot/`
-- [ ] Setup `git init` + `.gitignore`
-- [ ] Generate `package.json` dengan dependencies (express, drizzle-orm, openai, bullmq, ioredis, pino, zod, axios, exceljs, googleapis, @google-cloud/documentai)
-- [ ] Generate `tsconfig.json`, `drizzle.config.ts`
-- [ ] Generate `Dockerfile` + `docker/docker-compose.yml`
-- [ ] Generate `.env.example`
-
-### Auth & Token Setup
-- [ ] CLI `auth:sharepoint` — device code flow untuk dapat token SharePoint
-- [ ] CLI `auth:test` — verifikasi SharePoint token dengan curl `/sites/VinFast/_api/web`
-- [ ] Token refresh logic di `src/services/sharepoint-auth.ts`
-- [ ] Auto-renewal cron (daily check, refresh jika <10 hari lagi expired)
-
-### Database
-- [ ] Drizzle schema lengkap: users, roles, permissions, role_permissions, customer, spk, stok, ompang_tracking, payment, message_log, llm_call_log, audit_log, etl_state
-- [ ] Migration `0001_init.sql` + `0002_seed_master.sql`
-- [ ] Seed 27 karyawan dari DB_HR sebagai users (default role = sales_executive)
-- [ ] Seed enum master: dealers, tipe_mobil, warna, leasing, payment_types
-
-### Google Workspace Setup (perlu akses automobilvinfast@gmail.com)
-- [ ] Buat GCP project `vinfast-sales-bot`
-- [ ] Enable API: Sheets API, Drive API, Document AI API
-- [ ] Create service account `bot-sa@vinfast-sales-bot.iam.gserviceaccount.com`
-- [ ] Download JSON key → `credentials/google-sa.json`
-- [ ] Buat Google Drive folder `SalesBot/` + subfolders (SPK, Templates, Archive, Reports)
-- [ ] Share `SalesBot/` ke service account sebagai Editor
-- [ ] Buat Google Sheet `SalesBot_Inbox` dengan 6 tabs (Inbox_SPK_Bot, Inbox_KTP_Bot, Inbox_KK_Bot, Inbox_Payment_Bot, Log_Bot, Stats_Daily)
-- [ ] Share spreadsheet ke service account sebagai Editor
-- [ ] Setup Document AI processor: KTP Indonesia parser + Generic Form parser
-- [ ] CLI `seed:gsheets` untuk auto-create headers di tiap tab
-
-### Evolution API Instance
-- [ ] Akses Evolution API admin panel atau API
-- [ ] POST `/instance/create` dengan name `vinfast-bot`
-- [ ] Scan QR code di console Evolution untuk pair nomor bot
-- [ ] Set webhook URL: `https://vinfast.caricreatormu.my.id/webhook/wa`
-- [ ] Test send/receive message
-
-### Domain & SSL
-- [ ] Verify DNS A record `vinfast.caricreatormu.my.id → 109.123.240.168`
-- [ ] Issue Let's Encrypt cert via certbot
-- [ ] Tambah nginx server block ke `evolution_nginx`
-- [ ] Reload nginx
-- [ ] Test HTTPS endpoint
-
-### LLM via OpenRouter
-- [x] ~~Generate API key~~ (sudah ada, di `.env`)
-- [ ] Top-up balance OpenRouter (kalau belum) — minimal $5
-- [ ] Implementasi `src/services/llm.ts` dengan `openai` SDK + baseURL `openrouter.ai/api/v1`
-- [ ] Routing: `deepseek/deepseek-chat` untuk NLU, `google/gemini-flash-1.5` untuk vision/OCR
-- [ ] CLI `llm:test "stok vf3 hitam"` untuk verify parsing
-- [ ] Monitor cost via OpenRouter dashboard + WA alert harian
-
-### Acceptance Phase 0
-- [ ] Bot terima pesan WA "ping" → balas "pong"
-- [ ] `curl /health` return 200
-- [ ] Sync worker bisa download Jurnal Ompang.xlsx dari SharePoint
-- [ ] Bisa append baris ke Google Sheets Inbox_SPK_Bot
+| Group | Status |
+|-------|--------|
+| Repo skeleton (package.json, tsconfig, Drizzle config, Hono bootstrap) | ✅ |
+| Docker stack (bot + db 5433 + redis 6380 + log rotation + resource limits) | ✅ |
+| SharePoint REST + token refresh | ✅ |
+| Google Sheets `SalesBot_Inbox` + Drive folder | ✅ |
+| OpenRouter NLU + vision tested | ✅ |
+| Evolution instance `vinfast-bot` paired ke 6285101438585 | ✅ |
+| Webhook `http://vinfast-bot:3001/webhook/wa` via Docker DNS | ✅ |
+| Domain `https://vinfast.caricreatormu.my.id` + SSL Let's Encrypt | ✅ |
+| Cert auto-renewal (daily cron via Docker certbot) | ✅ |
+| `ping → pong` end-to-end test | ✅ |
+| Drizzle schema push (13 tabel + 17 index) | ✅ |
 
 ---
 
-## Phase 1 — MVP Core (Minggu 2-3)
+## 🔥 Phase 1 — MVP Core (NEXT)
 
-### Query Engine
-- [ ] Handler `query-stok` dengan regex pre-parsing + LLM fallback
-- [ ] Handler `query-ompang` (by nama, by VIN, by no SPK)
-- [ ] Handler `query-stnk` + `query-bpkb`
-- [ ] Format reply WA yang readable di mobile (max 1600 char, gunakan emoji minimal)
+Prioritas urut sesuai request Lucky 13 Mei:
 
-### Sync Worker
-- [ ] `src/workers/sync-worker.ts` dengan node-cron tiap 2 menit
-- [ ] Modul `normalizers.ts` untuk semua field (tipe_mobil, dealer, warna, payment, booking_dp)
-- [ ] Skip filter untuk test rows (nama < 3 char, regex test/cek/asd)
-- [ ] Parse 3 file Excel: Jurnal Sales Mobil (SPK + Stock Unit + Payment), Jurnal Ompang, DB_MOBIL (master)
-- [ ] UPSERT logic dengan VIN sebagai unique key
-- [ ] Audit log per insert/update
+### 1. SPK Intake Trial
+- [ ] `src/services/storage.ts` — local file upload helper
+- [ ] `src/handlers/spk-intake.ts` — state machine 16 field di Redis (TTL 30 menit)
+- [ ] Per-field validation (NIK 16 digit, no HP, tipe mobil enum)
+- [ ] Final: append row ke Sheets `Inbox_SPK_Bot` + create folder `uploads/SPK/2026/{NoSPK}/`
+- [ ] Command trigger: `spk` atau `/spk`
 
-### SPK Intake Conversational
-- [ ] State machine di Redis dengan TTL 30 menit
-- [ ] 16 field collection (sesuai SPK sheet)
-- [ ] Per-field validation (NIK 16 digit, no HP format Indo, dst)
-- [ ] Review summary + confirmation
-- [ ] Append ke Google Sheets Inbox_SPK_Bot
-- [ ] Create folder Google Drive `/SalesBot/SPK/2026/{NoSPK}/`
+### 2. Karyawan Lookup
+- [ ] CLI `seed:users` — download `DB_HR.xlsx` SharePoint → seed `users` table (default role sales_executive)
+- [ ] `src/handlers/query-user.ts` — `cari karyawan {nama}` → SELECT FROM users LIKE
+- [ ] Format reply: nama, role, dealer
 
-### User Management & RBAC
-- [ ] Middleware `wa-auth.ts`
-- [ ] Permission system (matrix permission per role)
-- [ ] Auto-onboarding: nomor di customer table → auto-create user Customer role
-- [ ] CLI `user:add`, `user:list`, `role:grant`
+### 3. Photo Upload + Parse
+- [ ] `src/services/evolution-media.ts` — download media from Evolution by message_id
+- [ ] `src/services/llm.ts` — OpenRouter wrapper (NLU + vision) dengan Redis cache + circuit breaker
+- [ ] `src/handlers/upload-ktp.ts` — save → OCR `gemini-2.5-flash` → `customer` table + `Inbox_KTP_Bot` Sheets
+- [ ] `src/handlers/upload-payment.ts` — save → OCR → auto-match SPK aktif → `payment` table + `Inbox_Payment_Bot` Sheets
+
+### Service modules prerequisite untuk #1-3
+- [ ] `src/services/sharepoint-rest.ts` — token cache + refresh + download file
+- [ ] `src/services/gsheets.ts` — append + batch update
+- [ ] `src/utils/normalizers.ts` — enum mapper dealer/tipe/warna, booking_dp parser, test row filter
+
+### Sync Worker (paralel — bisa dikerjakan setelah handler atau sebelum)
+- [ ] `src/workers/sharepoint-sync.ts` — poll 2 menit, parse 2 file Excel, UPSERT `spk`/`stok`/`ompang_tracking`
+- [ ] MD5 hash di `etl_state` table → skip unchanged
+
+### Query Engine (low priority, setelah sync worker)
+- [ ] `src/handlers/query-stok.ts` — `stok vf3 hitam`
+- [ ] `src/handlers/query-ompang.ts` — `ompang budi` / `ompang VIN-xxx`
+- [ ] `src/handlers/query-stnk-bpkb.ts`
+
+### Webhook Hardening
+- [ ] `src/middleware/webhook-verify.ts` — HMAC SHA-256 verification
+- [ ] `src/middleware/rate-limit.ts` — Redis sliding window 30/menit per WA number
+- [ ] Insert tiap inbound message ke `message_log` table
 
 ### Acceptance Phase 1
-- [ ] Query stok jawab <3 detik dengan data benar
-- [ ] Query ompang jawab dengan status STNK & BPKB
-- [ ] SPK intake selesai end-to-end → row baru di Google Sheets
+- [ ] SPK intake end-to-end (16 field → Sheets row)
+- [ ] Cari karyawan working
+- [ ] KTP upload + OCR ≥85% confidence
+- [ ] Bukti TF upload + auto-match SPK
 - [ ] Sync worker jalan tiap 2 menit, lag <5 menit
 
 ---
 
 ## Phase 2 — Document Processing (Minggu 4-5)
 
-### OCR Pipeline
-- [ ] Handler `doc-upload` deteksi caption "ktp"/"kk" atau state context
-- [ ] Download image dari Evolution API
-- [ ] Upload ke Google Drive folder customer
-- [ ] OCR via Document AI KTP processor
-- [ ] Parse hasil OCR ke structured (NIK, nama, ttl, alamat, dst)
-- [ ] Validate confidence ≥85%, kalau < flag NEEDS_MANUAL_CHECK
-- [ ] Append hasil ke Google Sheets Inbox_KTP_Bot
-
-### Payment Verification
-- [ ] Handler `payment-upload` untuk bukti TF
-- [ ] OCR via Document AI Form Parser
-- [ ] Extract: nominal, bank, rek tujuan, tgl, no ref
-- [ ] Auto-match ke SPK aktif berdasarkan customer no_hp + window 24 jam
-- [ ] Notif WA ke Finance dengan tombol Approve/Reject
-- [ ] Update status payment
-
 ### Notification Engine
-- [ ] Worker `notify-worker` listening ke event sync
-- [ ] Rule: STNK status DONE → notif customer
+- [ ] Worker `notify-worker` listen ke event sync
+- [ ] Rule: STNK done → notif customer
 - [ ] Rule: BPKB diterima Biro → notif sales + customer
 - [ ] Rule: Faktur revisi → notif admin
+
+### Payment Verification refinement
+- [ ] Notif Finance dengan tombol Approve/Reject
+- [ ] Update status payment
 
 ---
 
@@ -145,9 +92,9 @@
 
 - [ ] Document generator (surat jalan, kwitansi, konfirmasi pesanan) dari template .docx
 - [ ] LibreOffice convert docx → PDF
-- [ ] Send PDF via WA + link Google Drive
+- [ ] Send PDF via WA + link
 - [ ] Query faktur dengan attachment PDF
-- [ ] WA command `/stats` untuk admin (statistik bot usage)
+- [ ] WA command `/stats` untuk admin
 - [ ] Analytics aggregator (user_stats_daily)
 - [ ] Stress test 100 concurrent users
 
@@ -168,9 +115,10 @@
 
 ## Operational / Day-to-Day
 
+- [x] SSL cert auto-renewal cron (daily 03:00)
 - [ ] Cron daily backup PostgreSQL → Cloudflare R2 / Backblaze B2
-- [ ] Cron weekly: archive message_log >90 hari ke Google Drive Archive
+- [ ] Cron weekly: archive message_log >90 hari
 - [ ] Cron weekly: generate report user activity → kirim ke owner WA
 - [ ] Monitor: SharePoint token expiry (alert 7 hari sebelum)
-- [ ] Monitor: DeepSeek balance (alert <$0.50)
+- [ ] Monitor: OpenRouter balance (alert <$0.50)
 - [ ] Monitor: Disk space VPS (alert <20% free)

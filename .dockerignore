@@ -1,0 +1,11 @@
+node_modules
+dist
+letsencrypt
+credentials
+logs
+uploads
+data-samples
+*.test.ts
+test-*.ts
+.env
+.env.*

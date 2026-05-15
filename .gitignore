@@ -1,39 +1,59 @@
-# Credentials & secrets
-.env
-.env.local
-.env.*.local
-credentials/*.json
-credentials/*.key
-!credentials/.gitignore
-
-# Sample data (large, regenerable)
-data-samples/*.xlsx
-data-samples/*.xlsm
-!data-samples/.gitkeep
-
-# Node
+# Dependencies
 node_modules/
+.pnp
+.pnp.js
+
+# Build
 dist/
 build/
 *.tsbuildinfo
+
+# Env & secrets
+.env
+.env.local
+.env.*.local
+credentials/
+!credentials/.gitkeep
 
 # Logs
 logs/
 *.log
 npm-debug.log*
 
-# Editor
+# IDE
 .vscode/
 .idea/
 *.swp
+
+# OS
 .DS_Store
+Thumbs.db
 
-# Temp
-tmp/
-.cache/
+# Uploads (Phase 1 local storage)
+uploads/
+!uploads/.gitkeep
 
-# Python (untuk script analysis)
+# SSL certificates & Let's Encrypt private keys
+letsencrypt/
+
+# Test artefacts
+test-*.js
+test-*.py
+*.test.log
+
+# Drizzle
+drizzle/meta/_journal.json.bak
+
+# Data samples (raw Excel)
+data-samples/*.xlsx
+data-samples/*.xls
+
+# Python scripts
 __pycache__/
 *.pyc
 venv/
 .venv/
+
+# PM2
+.pm2/
+ecosystem.config.local.js

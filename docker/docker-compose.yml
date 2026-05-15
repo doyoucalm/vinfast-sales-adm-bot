@@ -1,0 +1,101 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  vinfast-bot:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: vinfast-bot
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3001"
+    env_file:
+      - ../.env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://vinfast:${DB_PASSWORD}@vinfast-db:5432/vinfast_bot
+      REDIS_URL: redis://vinfast-redis:6379
+      EVOLUTION_BASE_URL: http://evolution_api:8080
+    volumes:
+      - ../credentials:/opt/sales-bot/credentials
+      - ../uploads:/opt/sales-bot/uploads
+      - ../logs:/opt/sales-bot/logs
+    depends_on:
+      vinfast-db:
+        condition: service_healthy
+      vinfast-redis:
+        condition: service_healthy
+    networks:
+      - vinfast-net
+      - evolution_evo-net
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  vinfast-db:
+    image: postgres:16-alpine
+    container_name: vinfast-db
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5433:5432"
+    environment:
+      POSTGRES_DB: vinfast_bot
+      POSTGRES_USER: vinfast
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - vinfast-db-data:/var/lib/postgresql/data
+    networks:
+      - vinfast-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vinfast -d vinfast_bot"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+
+  vinfast-redis:
+    image: redis:7-alpine
+    container_name: vinfast-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6380:6379"
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - vinfast-redis-data:/data
+    networks:
+      - vinfast-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 384M
+
+volumes:
+  vinfast-db-data:
+  vinfast-redis-data:
+
+networks:
+  vinfast-net:
+    driver: bridge
+  evolution_evo-net:
+    external: true
